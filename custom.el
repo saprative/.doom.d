@@ -7,6 +7,7 @@
  '(blink-cursor-mode nil)
  '(column-number-mode t)
  '(menu-bar-mode nil)
+ '(org-directory "c:/Users/SaprativeJana/org/")
  '(package-selected-packages '(all-the-icons all-the-icons-gnus neotree))
  '(size-indication-mode t)
  '(tool-bar-mode nil))

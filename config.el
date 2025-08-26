@@ -39,9 +39,12 @@
 (setq display-line-numbers-type t)
 
 ;; If you use `org' and don't want your org files in the default location below,
-;; change `org-directory'. It must be set before org loads!
-(setq org-directory "c:/Users/SaprativeJana/org/")
+;; ;; change `org-directory'. It must be set before org loads!
+;; (setq org-directory "c://Users/SaprativeJana/org/")
 
+(setq org-directory (expand-file-name "org" (getenv "USERPROFILE")))
+
+;; (setq org-directory (expand-file-name "org" (getenv "USERPROFILE")))
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
 ;;
@@ -74,12 +77,53 @@
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
 
-(setq default-directory "c://Users/SaprativeJana/")
+;; (setq org-directory "c://Users/SaprativeJana/org/")
+;; (setq default-directory "c://Users/SaprativeJana/org/")
+
+  ;; Define your org directory dynamically
+  ;; (setq org-directory (expand-file-name "org/" (getenv "USERPROFILE")))
+;; works on Windows
+  ;; (setq org-directory (expand-file-name "org/" (getenv "HOME")))
+;; works on Linux/macOS
+;; Also set default directory so Dired, Org, and capture start here
+
+(setq default-directory org-directory)
+
+(after! org
+  ;; Default notes file → inbox.org
+  (setq org-default-notes-file (expand-file-name "inbox.org" org-directory))
+
+  ;; Capture templates
+  (setq org-capture-templates
+        '(
+          ;; 1. TODO goes under a headline
+          ("t" "Todo" entry
+           (file+headline (expand-file-name "inbox.org" org-directory) "Tasks")
+           "* TODO %?\n  %U\n  %a")
+
+          ;; 2. Note goes under a headline
+          ("n" "Note" entry
+           (file+headline (expand-file-name "inbox.org" org-directory) "Notes")
+           "* %?\n  %U\n  %a")
+
+          ;; 3. Journal goes into a date tree
+          ("j" "Journal" entry
+           (file+datetree (expand-file-name "journal.org" org-directory))
+           "* %U %?\n")
+
+          ;; 4. Quick scratch note → just goes at end of file
+          ("s" "Scratch" entry
+           (file (expand-file-name "scratch.org" org-directory))
+           "* %U %?\n")
+        )))
 
 (defun my-dashboard-banner ()
-  (let* ((banner '("╔═╗┌─┐┌─┐┌─┐┬ ┬┌─┐  ╔╗╔┌─┐┌┬┐┌─┐┌┐ ┌─┐┌─┐┬┌─"
-                   "╚═╗├─┤├─┘├─┘└┬┘└─┐  ║║║│ │ │ ├┤ ├┴┐│ ││ │├┴┐"
-                   "╚═╝┴ ┴┴  ┴   ┴ └─┘  ╝╚╝└─┘ ┴ └─┘└─┘└─┘└─┘┴ ┴"))
+  (let* ((banner '("|--------------------------------------------------|"
+                   "|   ╔═╗┌─┐┌─┐┌─┐┬ ┬┌─┐  ╔╗╔┌─┐┌┬┐┌─┐┌┐ ┌─┐┌─┐┬┌─   |"
+                   "|   ╚═╗├─┤├─┘├─┘└┬┘└─┐  ║║║│ │ │ ├┤ ├┴┐│ ││ │├┴┐   |"
+                   "|   ╚═╝┴ ┴┴  ┴   ┴ └─┘  ╝╚╝└─┘ ┴ └─┘└─┘└─┘└─┘┴ ┴   |"
+                   "|--------------------------------------------------|"
+                   "                                                    "))
          (longest-line (apply #'max (mapcar #'length banner))))
     (put-text-property
      (point)
