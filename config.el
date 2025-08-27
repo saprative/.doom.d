@@ -92,31 +92,49 @@
 (after! org
   ;; Default notes file → inbox.org
   (setq org-default-notes-file (expand-file-name "inbox.org" org-directory))
-
   ;; Capture templates
   (setq org-capture-templates
         '(
           ;; 1. TODO goes under a headline
-          ("t" "Todo" entry
-           (file+headline (expand-file-name "inbox.org" org-directory) "Tasks")
+          ("t" "Todo" entry (file+headline org-default-notes-file "Tasks")
            "* TODO %?\n  %U\n  %a")
 
           ;; 2. Note goes under a headline
-          ("n" "Note" entry
-           (file+headline (expand-file-name "inbox.org" org-directory) "Notes")
+          ("n" "Note" entry ,(file+headline (concat org-directory "notes.org") "Notes")
            "* %?\n  %U\n  %a")
 
           ;; 3. Journal goes into a date tree
-          ("j" "Journal" entry
-           (file+datetree (expand-file-name "journal.org" org-directory))
+          ("j" "Journal" entry (file+datetree (concat org-directory "journal.org"))
            "* %U %?\n")
 
           ;; 4. Quick scratch note → just goes at end of file
-          ("s" "Scratch" entry
-           (file (expand-file-name "scratch.org" org-directory))
+          ("s" "Scratch" entry (file ,(expand-file-name "scratch.org" org-directory))
            "* %U %?\n")
         )))
 
+;; Org roam
+
+(setq org-roam-directory org-directory)
+(after! org-roam
+  :config
+  (setq org-roam-database-connector 'sqlite3)
+  (setq org-roam-capture-templates
+        '(("d" "default" plain "%?"
+           :if-new (file+head "${slug}.org"
+                              "#+title: ${title}\n")
+           :unnarrowed
+           t))))
+
+;; Make agenda scan *all* .org files in org-directory and subfolders
+(setq org-agenda-files
+      (directory-files-recursively org-directory "\\.org$"))
+
+;; Sync exec-path with system PATH
+(after! exec-path-from-shell
+  (exec-path-from-shell-initialize))
+
+
+(add-to-list 'exec-path "C:/sqlite")
 (defun my-dashboard-banner ()
   (let* ((banner '("|--------------------------------------------------|"
                    "|   ╔═╗┌─┐┌─┐┌─┐┬ ┬┌─┐  ╔╗╔┌─┐┌┬┐┌─┐┌┐ ┌─┐┌─┐┬┌─   |"
