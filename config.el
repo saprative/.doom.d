@@ -44,6 +44,10 @@
 
 (setq org-directory (expand-file-name "org" (getenv "USERPROFILE")))
 
+;; Text Size
+(setq doom-font (font-spec :family (font-get (face-attribute 'default :font) :family)
+                           :size 20))  ;; cha :weight 'regular)) ;
+
 ;; (setq org-directory (expand-file-name "org" (getenv "USERPROFILE")))
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
@@ -92,29 +96,88 @@
 (after! org
   ;; Default notes file → inbox.org
   (setq org-default-notes-file (expand-file-name "inbox.org" org-directory))
+  (setq org-default-projects-file (expand-file-name "projects.org" org-directory))
+
+  ;; All org files in `org-agenda-files` are valid refile targets
+  (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+
+  ;; Show full outline paths
+  (setq org-refile-use-outline-path 'file)
+
+  ;; Allow creating new headings when refiling
+  (setq org-refile-allow-creating-parent-nodes 'confirm)
+
+  ;; TODO and PROJ
+  (setq org-todo-keywords
+        '((sequence
+           "TODO(t)"   ; normal task
+           "PROJ(p)"   ; project
+           "|"         ; separator: before = active, after = done
+           "DONE(d)"   ; finished
+           "CANCELLED(c)")))
+
   ;; Capture templates
   (setq org-capture-templates
         '(
-          ;; 1. TODO goes under a headline
+          ;; 1. Ideas goes under a headline
           ("t" "Todo" entry (file+headline org-default-notes-file "Tasks")
            "* TODO %?\n  %U\n  %a")
 
-          ;; 2. Note goes under a headline
-          ("n" "Note" entry ,(file+headline (concat org-directory "notes.org") "Notes")
-           "* %?\n  %U\n  %a")
+          ;; 2. Projects goes under a headline
+           ("p" "Projects" entry (file+headline org-default-projects-file "Projects")
+           "* TODO %? [/]\n  %U\n  %a")
 
-          ;; 3. Journal goes into a date tree
-          ("j" "Journal" entry (file+datetree (concat org-directory "journal.org"))
-           "* %U %?\n")
 
-          ;; 4. Quick scratch note → just goes at end of file
-          ("s" "Scratch" entry (file ,(expand-file-name "scratch.org" org-directory))
-           "* %U %?\n")
-        )))
+        ))
+   (setq org-agenda-custom-commands
+        '(
+          ("d" "Dashboard"
+           (
+
+             ;; Inbox
+            (tags-todo "*"
+                       ((org-agenda-files (list org-default-notes-file))
+                        (org-agenda-overriding-header "📥 Inbox")))
+
+            ;; Projects (only PROJ tasks)
+            (todo "PROJ"
+                  ((org-agenda-files (list org-default-projects-file))
+                   (org-agenda-overriding-header "📂 Projects")))
+
+            ;; ✅ All tasks (exclude inbox + projects)
+            (todo "*"
+                  ((org-agenda-files
+                    (seq-remove (lambda (f)
+                                  (member f (list org-default-notes-file
+                                                  org-default-projects-file)))
+                                (org-agenda-files)))
+                   (org-agenda-overriding-header "✅ All Other Tasks")))
+
+            ;; Daily agenda
+            (agenda ""
+                    ((org-agenda-span 1)
+                     (org-agenda-start-day "0d")   ;; force today
+                     (org-agenda-overriding-header "📅 Today")))
+            ;; Weekly agenda
+            (agenda ""
+                    ((org-agenda-span 7)
+                     (org-agenda-start-day "+0d")
+                     (org-agenda-overriding-header "🗓️ Weekly Agenda"))))))))
+
+;; Auto Move from TODO to PROJ
+(defun my/org-auto-move-proj ()
+  "Automatically move PROJ tasks from inbox.org to projects.org."
+  (when (and (string= (buffer-file-name) org-default-notes-file))
+    (org-map-entries
+     (lambda ()
+       (when (string= (org-get-todo-state) "PROJ")
+         (org-refile nil nil (list "Projects" org-default-projects-file nil))))
+     "PROJ")))
+(add-hook 'before-save-hook #'my/org-auto-move-proj)
 
 ;; Org roam
-
 (setq org-roam-directory org-directory)
+
 (after! org-roam
   :config
   (setq org-roam-database-connector 'sqlite3)
@@ -135,6 +198,7 @@
 
 
 (add-to-list 'exec-path "C:/sqlite")
+
 (defun my-dashboard-banner ()
   (let* ((banner '("|--------------------------------------------------|"
                    "|   ╔═╗┌─┐┌─┐┌─┐┬ ┬┌─┐  ╔╗╔┌─┐┌┬┐┌─┐┌┐ ┌─┐┌─┐┬┌─   |"
